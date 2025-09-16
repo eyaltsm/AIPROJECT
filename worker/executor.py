@@ -25,19 +25,33 @@ API_BASE = os.environ["CONTROL_BASE_URL"]   # e.g. https://api.yourdomain.com
 WORKER_ID = os.environ.get("WORKER_ID", "worker-1")
 WORKER_TOKEN = os.environ["WORKER_TOKEN"]
 
-# S3 Configuration
-s3 = boto3.client(
-    "s3",
-    endpoint_url=os.environ["S3_ENDPOINT_URL"],
-    aws_access_key_id=os.environ["S3_ACCESS_KEY"],
-    aws_secret_access_key=os.environ["S3_SECRET_KEY"],
-)
-BUCKET = os.environ["S3_BUCKET"]
+# S3 Configuration (optional)
+S3_ENABLED = os.environ.get("S3_ENDPOINT_URL") is not None
+if S3_ENABLED:
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=os.environ["S3_ENDPOINT_URL"],
+        aws_access_key_id=os.environ["S3_ACCESS_KEY"],
+        aws_secret_access_key=os.environ["S3_SECRET_KEY"],
+    )
+    BUCKET = os.environ["S3_BUCKET"]
+else:
+    s3 = None
+    BUCKET = None
 
 def upload_bytes(key: str, data: bytes, content_type="image/png"):
-    """Upload bytes to S3."""
-    s3.put_object(Bucket=BUCKET, Key=key, Body=data, ContentType=content_type)
-    return key
+    """Upload bytes to S3 or save locally if S3 disabled."""
+    if S3_ENABLED:
+        s3.put_object(Bucket=BUCKET, Key=key, Body=data, ContentType=content_type)
+        return key
+    else:
+        # Save locally instead
+        local_path = f"./outputs/{key}"
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        with open(local_path, "wb") as f:
+            f.write(data)
+        print(f"Saved image locally: {local_path}")
+        return local_path
 
 # Load pipelines once at startup
 print("Loading SDXL pipelines...")
