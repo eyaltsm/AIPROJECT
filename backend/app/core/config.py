@@ -76,7 +76,7 @@ class Settings(BaseSettings):
     SENTRY_DSN: Optional[str] = None
     
     # Security
-    ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1", "march-locked-back-pond.trycloudflare.com"]
+    ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1", "*.trycloudflare.com"]
     
     # LLM Configuration
     OPENAI_API_KEY: Optional[str] = None
