@@ -1,0 +1,41 @@
+# GPU Worker Requirements - Heavy ML libraries for AI generation
+# Install this on Vast.ai/RunPod GPU instances
+
+# PyTorch with CUDA support (adjust version based on your CUDA version)
+torch==2.2.0+cu121
+torchvision==0.17.0+cu121
+torchaudio==2.2.0+cu121
+--extra-index-url https://download.pytorch.org/whl/cu121
+
+# Diffusion models and Stable Diffusion XL
+diffusers==0.24.0
+transformers==4.36.2
+accelerate==0.25.0
+safetensors==0.4.0
+
+# LoRA training
+peft==0.6.0
+bitsandbytes==0.42.0
+
+# ComfyUI integration and image processing
+xformers==0.0.23.post1
+opencv-python==4.8.1.78
+
+# AnimateDiff for video generation
+imageio==2.31.0
+imageio-ffmpeg==0.4.9
+
+# Hugging Face model management
+huggingface-hub==0.20.3
+
+# Additional utilities for AI workers
+numpy==1.24.3
+scipy==1.11.4
+matplotlib==3.7.2
+tqdm==4.66.1
+
+# Model download and caching
+requests==2.31.0
+tqdm==4.66.1
+
+

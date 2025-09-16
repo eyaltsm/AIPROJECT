@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ai_generation_db
+      POSTGRES_USER: ai_user
+      POSTGRES_PASSWORD: ai_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_user -d ai_generation_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and rate limiting
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://ai_user:ai_password@postgres:5432/ai_generation_db
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=your-secret-key-here
+      - ACCESS_TOKEN_SECRET=your-access-token-secret
+      - REFRESH_TOKEN_SECRET=your-refresh-token-secret
+      - WORKER_TOKEN_SECRET=your-worker-token-secret
+      - S3_ENDPOINT_URL=https://your-s3-endpoint.com
+      - S3_BUCKET=your-bucket-name
+      - S3_ACCESS_KEY=your-access-key
+      - S3_SECRET_KEY=your-secret-key
+      - STRIPE_SECRET_KEY=your-stripe-secret-key
+      - STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
+      - OPENAI_API_KEY=your-openai-api-key
+      - ANTHROPIC_API_KEY=your-anthropic-api-key
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # GPU Worker (for local testing with CPU)
+  gpu-worker:
+    build:
+      context: ./workers
+      dockerfile: Dockerfile.gpu
+    environment:
+      - API_BASE_URL=http://backend:8000
+      - WORKER_TOKEN=your-worker-token-here
+      - CUDA_VISIBLE_DEVICES=0
+    depends_on:
+      - backend
+    volumes:
+      - gpu_models:/opt/ai-worker/models
+    # Uncomment for GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # LLM Worker (for local testing)
+  llm-worker:
+    build:
+      context: ./workers
+      dockerfile: Dockerfile.llm
+    environment:
+      - API_BASE_URL=http://backend:8000
+      - WORKER_TOKEN=your-worker-token-here
+    depends_on:
+      - backend
+    volumes:
+      - llm_models:/opt/ai-worker/models
+
+  # ComfyUI (for image generation)
+  comfyui:
+    build:
+      context: ./workers
+      dockerfile: Dockerfile.comfyui
+    ports:
+      - "8188:8188"
+    environment:
+      - API_BASE_URL=http://backend:8000
+      - WORKER_TOKEN=your-worker-token-here
+    depends_on:
+      - backend
+    volumes:
+      - comfyui_models:/opt/ComfyUI/models
+      - comfyui_output:/opt/ComfyUI/output
+
+volumes:
+  postgres_data:
+  redis_data:
+  gpu_models:
+  llm_models:
+  comfyui_models:
+  comfyui_output:
+
+
